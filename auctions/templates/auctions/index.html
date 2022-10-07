@@ -1,0 +1,12 @@
+{% extends "auctions/layout.html" %}
+
+{% block body %}
+    <h2>Active Listings</h2>
+
+   {% for listing in listings %}
+    {{ listing.title }}
+    
+    {% empty %}
+    <p>There are not any Listing</p>
+   {% endfor %}
+{% endblock %}
