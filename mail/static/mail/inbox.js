@@ -5,10 +5,66 @@ const views = {
   EMAILS_VIEW: 'emails-view',
   EMAIL_VIEW: 'email-view',
 };
+let formInstance;
+
+function getFormNodes() {
+  const inputsName = {
+    recipients: 'compose-recipients',
+    subject: 'compose-subject',
+    body: 'compose-body',
+  };
+  const form = document.getElementById('compose-form');
+  const elements = {
+    recipients: form[inputsName.recipients],
+    subject: form[inputsName.subject],
+    body: form[inputsName.body],
+  };
+
+  function focus(name) {
+    const element = elements[name];
+    element.setSelectionRange(0, 0);
+    element.focus();
+  }
+
+  function formEventListener(callback) {
+    form.addEventListener('submit', callback);
+  }
+
+  function clearInputs() {
+    elements.recipients.value = '';
+    elements.subject.value = '';
+    elements.body.value = '';
+  }
+
+  function setValues(values) {
+    elements.recipients.value = values.recipients;
+    elements.subject.value = values.subject;
+    elements.body.value = values.body;
+  }
+
+  function getValues() {
+    return {
+      recipients: elements.recipients.value,
+      subject: elements.subject.value,
+      body: elements.body.value,
+    };
+  }
+
+  return {
+    inputsName,
+    clearInputs,
+    setValues,
+    getValues,
+    focus,
+    form,
+  };
+}
 
 document.addEventListener('DOMContentLoaded', async function () {
   errorMessage = document.getElementById('compose-form-error');
   successMessage = document.getElementById('compose-form-success');
+
+  formInstance = await getFormNodes();
 
   errorMessage.style.display = 'none';
   successMessage.style.display = 'none';
@@ -37,20 +93,17 @@ function displayView(viewId) {
 }
 
 function compose_email() {
-  const form = document.getElementById('compose-form');
-
-  form.addEventListener('submit', (event) => {
-    const body = JSON.stringify({
-      recipients: form['compose-recipients'].value,
-      subject: form['compose-subject'].value,
-      body: form['compose-body'].value,
-    });
+  formInstance.form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const body = JSON.stringify(formInstance.getValues());
 
     fetch('/emails', {
       method: 'POST',
       body,
     }).then(async (response) => {
       const feedback = await response.json();
+      displayView(views.EMAILS_VIEW);
+      formInstance.clearInputs();
 
       if (response.status !== 201) {
         errorMessage.style.display = 'block';
@@ -66,22 +119,18 @@ function compose_email() {
 
   // Show compose view and hide other views
   displayView(views.COMPOSE_VIEW);
-  document.querySelector('#emails-view').style.display = 'none';
-  document.querySelector('#compose-view').style.display = 'block';
 
   // Clear out composition fields
-  document.querySelector('#compose-recipients').value = '';
-  document.querySelector('#compose-subject').value = '';
-  document.querySelector('#compose-body').value = '';
 }
 
-function updateMail(mailId, payload) {
+async function updateMail(mailId, payload) {
   const body = JSON.stringify(payload);
 
-  fetch(`/emails/${mailId}`, {
-    method: 'PUT',
-    body,
-  }).then(async (response) => {
+  try {
+    const response = await fetch(`/emails/${mailId}`, {
+      method: 'PUT',
+      body,
+    });
     const feedback = await response.json();
 
     if (response.status !== 204) {
@@ -94,7 +143,7 @@ function updateMail(mailId, payload) {
     errorMessage.style.display = 'none';
     successMessage.style.display = 'block';
     successMessage.innerHTML = feedback;
-  });
+  } catch (err) {}
 }
 
 function createElement(elementName = 'span', props) {
@@ -109,6 +158,24 @@ function createElement(elementName = 'span', props) {
   return Object.assign(document.createElement(elementName), { ...props });
 }
 
+function mailReply(mailValues) {
+  const reBody = `
+
+-------------------- Mail --------------------
+${mailValues.timestamp} ${mailValues.sender} wrote:
+${mailValues.body}`;
+
+  formInstance.setValues({
+    recipients: mailValues.sender,
+    subject: `Re: ${mailValues.subject.replace(/re:\s/gi, '')}`,
+    body: reBody,
+  });
+
+  compose_email();
+
+  formInstance.focus('body');
+}
+
 function getMail(id) {
   displayView(views.EMAIL_VIEW);
 
@@ -117,6 +184,13 @@ function getMail(id) {
   fetch(`/emails/${id}`)
     .then((response) => response.json())
     .then((data) => {
+      document.getElementById('email-view__button--reply').onclick = () =>
+        mailReply({
+          sender: data.sender,
+          subject: data.subject,
+          body: data.body,
+          timestamp: data.timestamp,
+        });
       const elements = {
         sender: createElement('span', {
           id: 'from__value',
@@ -193,8 +267,6 @@ function getMailsbox(mailbox) {
 function load_mailbox(mailbox) {
   // Show the mailbox and hide other views
   displayView(views.EMAILS_VIEW);
-  // document.querySelector('#compose-view').style.display = 'none';
-  // document.querySelector('#emails-view').style.display = 'block';
 
   getMailsbox(mailbox);
 
