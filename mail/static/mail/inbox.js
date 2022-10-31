@@ -160,15 +160,16 @@ function getMailsbox(mailbox) {
     .then((mails) => {
       mails.forEach((mail) => {
         const archiveButton = createElement('button', {
-          className: 'btn btn-primary',
+          className: `btn btn-${mail.archived ? '' : 'outline-'}primary`,
           id: `button-archive__${mail.id}`,
           innerHTML: `<i class="fa fa-archive" aria-hidden="true"></i> ${
             mail.archived ? 'Unarchive' : 'Archive'
           }`,
           onclick: (event) => {
             event.stopPropagation();
-            updateMail(mail.id, { archived: !mail.archived });
-            load_mailbox('inbox');
+            updateMail(mail.id, { archived: !mail.archived }).then(() => {
+              load_mailbox('inbox');
+            });
           },
         });
         const elementLi = document.createElement('li');

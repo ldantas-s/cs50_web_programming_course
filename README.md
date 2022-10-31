@@ -27,7 +27,7 @@
 
   - [x] When viewing an Inbox email, the user should be presented with a button that lets them archive the email. When viewing an Archive email, the user should be presented with a button that lets them unarchive the email. This requirement does not apply to emails in the Sent mailbox.
   - [x] Recall that you can send a PUT request to `/emails/<email_id>` to mark an email as archived or unarchived.
-  - [ ] Once an email has been archived or unarchived, load the user’s inbox.
+  - [x] Once an email has been archived or unarchived, load the user’s inbox.
 
 - **Reply**: Allow users to reply to an email.
 
