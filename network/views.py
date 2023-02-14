@@ -7,15 +7,21 @@ from django.urls import reverse
 from .models import User, Post, Follower
 
 from network.helpers.decorators import is_authenticated
+from network.helpers.pagination import pagination
 
 
 def index(request):
     posts = Post.objects.all().order_by("-created_at")
+    page_obj = pagination(posts, request.GET.get("page"))
 
     return render(
         request,
         "network/index.html",
-        {"posts": posts, "title_page": "All Posts", "show_new_post": True},
+        {
+            "posts": page_obj,
+            "title_page": "All Posts",
+            "show_new_post": True,
+        },
     )
 
 
@@ -28,10 +34,16 @@ def following(request):
         user = User.objects.get(id=user_id)
         posts.extend(Post.objects.filter(user=user))
 
+    page_obj = pagination(posts, request.GET.get("page"))
+
     return render(
         request,
         "network/index.html",
-        {"posts": posts, "title_page": "Following Posts", "show_new_post": False},
+        {
+            "posts": page_obj, 
+            "title_page": "Following Posts", 
+            "show_new_post": False
+        },
     )
 
 
@@ -49,10 +61,12 @@ def profile(request, user_id=""):
 
         posts = Post.objects.filter(user=user_id).all().order_by("-created_at")
 
+    page_obj = pagination(posts, request.GET.get("page"))
+
     return render(
         request,
         "network/profile.html",
-        {"posts": posts, "user_info": user, "follow_button": follow_button},
+        {"posts": page_obj, "user_info": user, "follow_button": follow_button},
     )
 
 
